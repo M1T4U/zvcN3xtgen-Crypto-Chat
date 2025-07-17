@@ -3,8 +3,9 @@ import { GoogleGenAI, Chat } from '@google/genai';
 import type { ChatMessage } from './types';
 import { ChatMessageComponent } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
+import { ThemeToggle } from './components/ThemeToggle'; // Make sure path is correct
 
-// ✅ Correct way to access API key in Vite:
+// ✅ Access API key from .env
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
 const SYSTEM_INSTRUCTION = `You are zvcNxtgen, a fast, knowledgeable, and always up-to-date AI chatbot. Your mission is to help users instantly understand anything related to:
@@ -21,6 +22,7 @@ When giving examples, use real market scenarios and up-to-date insights. Keep re
 IMPORTANT: Always end your responses with a quick, engaging follow-up question like "Want me to break that down further?", "Need a chart or example with that?", or "What's our next move?".`;
 
 const App: React.FC = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'init',
@@ -40,6 +42,11 @@ Ask me anything. Let's get started.`,
   const chatRef = useRef<Chat | null>(null);
   const chatHistoryEndRef = useRef<HTMLDivElement | null>(null);
 
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    document.documentElement.classList.toggle('dark');
+  };
+
   useEffect(() => {
     if (!API_KEY) {
       setError('API_KEY environment variable not found. Please check your .env file and make sure VITE_GOOGLE_API_KEY is set.');
@@ -49,10 +56,8 @@ Ask me anything. Let's get started.`,
     try {
       const ai = new GoogleGenAI({ apiKey: API_KEY });
       chatRef.current = ai.chats.create({
-        model: 'gemini-1.5-flash', // or gemini-1.5-pro if you want
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-        },
+        model: 'gemini-1.5-flash',
+        config: { systemInstruction: SYSTEM_INSTRUCTION },
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to initialize AI model.');
@@ -104,14 +109,16 @@ Ask me anything. Let's get started.`,
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(`Error: ${errorMessage}`);
-      setMessages((prev) => prev.slice(0, -1)); // Remove placeholder
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   return (
-    <div className="h-screen w-screen bg-black text-gray-200 font-mono flex flex-col">
+    <div className={`h-screen w-screen ${theme === 'dark' ? 'bg-black text-gray-200' : 'bg-white text-black'} font-mono flex flex-col`}>
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
       <header className="text-center p-4 border-b border-cyan-500/30 shadow-[0_5px_15px_-5px] shadow-cyan-500/20">
         <h1 className="text-7xl font-bold text-cyan-400">zvcNxtgen</h1>
         <p className="text-xs text-gray-500 pt-2">Crypto Intelligence Protocol</p>
